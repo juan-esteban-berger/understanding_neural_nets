@@ -11,6 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 st.markdown("# Understanding Neural Networks")
+st.write("By Juan Esteban Berger")
 
 st.markdown("## Ordinary Least Squares with Gradient Descent")
 
@@ -37,7 +38,7 @@ np.random.seed(42)
 x1 = np.random.uniform(-10, 10, 100)
 x2 = np.random.uniform(-10, 10, 100)
 
-# Define the Plane y = 2x1 - 3x2 + 4 with Noise
+# Define the Plane y = sigmoid(2x1 - 3x2 + 4 + Noise)
 noise = np.random.normal(0, 3, 100)
 y = 2 * x1 - 3 * x2 + 4 + noise
 
@@ -191,14 +192,118 @@ $$
 $$
 we can derive a Logistic Classification model from our previosly defined Linear Regression Model as follows:
 $$
-y = \sigma(w_1x_1 + w_2x_2 + \beta)
+y = \sigma(w_1x_1 + w_2x_2 + \beta + \epsilon)
 $$
 $$
-y = \frac{1}{1+e^{w_1x_1 + w_2x_2 + \beta}}
+y = \frac{1}{1+e^{-(w_1x_1 + w_2x_2 + \beta + \epsilon)}}
 $$
-Furthermore, we can generate data from this
+Furthermore, we can continue our interactive demonstration of neural networks by generating data from the following equation:
+$$
+y = \frac{1}{1+e^{-(2x_1 + -3x_2 + 4 + \epsilon)}}
+$$
 ''', unsafe_allow_html=True)
 
+st.markdown("<br>", unsafe_allow_html = True)
+
+# Generate Random Data
+np.random.seed(42)
+x1 = np.random.uniform(-10, 10, 100)
+x2 = np.random.uniform(-10, 10, 100)
+
+# Define the Plane y = 2x1 - 3x2 + 4 with Noise
+noise = np.random.normal(0, 3, 100)
+y = 1 / (1 + np.exp(-(2 * x1 - 3 * x2 + 4 + noise)))
+
+# Preview Data
+df = pd.DataFrame({
+    'x1': x1,
+    'x2': x2,
+    'y': y
+})
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.dataframe(df)
+with col2:
+    # Create 3D Scatter Plot
+    scatter = go.Scatter3d(x=df['x1'], y=df['x2'], z = df['y'], mode='markers')
+
+    fig = go.Figure(data = [scatter])
+    fig.update_layout(template="plotly_dark")
+    fig.update_layout(margin=dict(t=0, b=50, l=0, r=0))
+    # Adjust camera settings for default zoom and angle
+    fig.update_layout(
+        scene_camera=dict(
+            eye=dict(x=2, y=2, z=2),  # Adjust eye position for zoom and angle
+            center=dict(x=0, y=0, z=0)  # Center the camera view
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+st.write("The animation below visualizes the use of gradient descent to find the plane that minimizes the sum of squared residuals across 150 training steps (of which only every 5th training step is shown).")
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Initialize Random Weights and Biases
+mean = 0
+std_dev = 0.25
+w1 = np.random.normal(mean, std_dev)
+w2 = np.random.normal(mean, std_dev)
+b = np.random.normal(mean, std_dev)
+learning_rate = 0.001
+
+# Set Colorscale
+colorscale_val = 'oranges'
+
+#  Initialize a 3D scatter plot with no data points (x, y, z are empty lists) and sets the marker style.
+scatter = go.Scatter3d(x=x1, y=x2, z=y, mode="markers")
+
+# Initialize a 3D Surface Plot using meshgrids
+x1_surface = np.linspace(-10, 10, 100)
+x2_surface = np.linspace(-20, 20, 100)
+x1_surface, x2_surface = np.meshgrid(x1_surface, x2_surface)
+surface = go.Surface(z=1/ (1 + np.exp(-(w1*x1_surface + w2*x2_surface + b))), x=x1_surface, y=x2_surface,
+                     colorscale=colorscale_val,
+                     showscale=False)
+
+# Initialize Figure
+fig = go.Figure(data = [scatter, surface])
+
+# Perform Gradient Descent and Generate Frames for the Figure
+frames = []
+for k in range(150): 
+    # Make Prediction
+    y_pred = 1 / (1 + np.exp(-(w1 * x1 + w2 * x2 + b)))
+
+    # Calculate Error
+    error = y - y_pred
+
+    # Calculate Gradients
+    N = len(y)
+    grad_w1 = (-2/N) * np.dot(error, x1)
+    grad_w2 = (-2/N) * np.dot(error, x2)
+    grad_b = (-2/N) * np.sum(error)
+
+    # Update w1, w2, b using gradient descent
+    w1 -= learning_rate * grad_w1
+    w2 -= learning_rate * grad_w2
+    b -= learning_rate * grad_b
+
+    # Create a new frame with the updated plane
+    new_surface = go.Surface(z=1/ (1 + np.exp(-(w1*x1_surface + w2*x2_surface + b))),
+                             x=x1_surface,
+                             y=x2_surface,
+                             colorscale=colorscale_val)
+    if k % 5 == 0:
+        frames.append(go.Frame(data=[new_surface], traces=[1], name=f'frame{k}'))
+fig.update(frames=frames)
+
+fig = animate(fig, 250, x_range=(-10, 10), y_range=(-10, 10), z_range=(-0.5, 1.5)) 
+
+st.plotly_chart(fig, use_container_width=True)
 st.markdown('## Adding a Hidden Layer')
 
 st.markdown('## Adding a Second Output')
