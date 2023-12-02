@@ -60,6 +60,12 @@ def animate(fig, duration_val, x_range, y_range, z_range):
       ]
     }
   ],
-    template='plotly_dark'
+    template='plotly_dark',
+    margin=dict(t=0, b=50, l=0, r=0),
+    scene_camera=dict(
+            eye=dict(x=1.6, y=1.6, z=1.6),  # Adjust eye position for zoom and angle
+            center=dict(x=0, y=0, z=0)  # Center the camera view
+        )
   )
-  fig.show()
+
+  return fig
